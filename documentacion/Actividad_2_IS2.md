@@ -1,30 +1,76 @@
-# Informe de Auditoría de Riesgos Idebtificada por IA LLM: Sistema de Gestión Universitaria
+# Auditoría de Riesgos del Proyecto (Software)
 
-## 1. Riesgos Técnicos
-| Riesgo | Probabilidad | Impacto | Justificación |
-| :--- | :--- | :--- | :--- |
-| **Limitación de Concurrencia (SQLite)** | **Alta** | **Medio** | SQLite no está diseñado para múltiples escrituras simultáneas, lo que puede fallar si muchos usuarios acceden a la vez. |
-| **Carencia de Definición de Entorno** | **Alta** | **Alto** | La sección de "Restricciones Técnicas" está vacía, lo que implica incertidumbre sobre el despliegue final. |
-| **Complejidad en la Lógica de Vista** | Media | Bajo | Mustache prohíbe lógica en las plantillas; esto obliga a saturar el backend de Java con lógica de presentación. |
-| **Brecha en Lógica de Autorización** | Media | **Alto** | Aunque se usa BCrypt para contraseñas, falta definir el control de acceso para que un "Alumno" no acceda a funciones de "Admin". |
+## Analisi de Riesgo generado por ClickUp
+### 1) Riesgos técnicos
 
-## 2. Riesgos Organizacionales
-| Riesgo | Probabilidad | Impacto | Justificación |
-| :--- | :--- | :--- | :--- |
-| **Sobrecarga Metodológica (SCRUM)** | **Alta** | Bajo | Aplicar SCRUM completo en un equipo de solo 2 personas puede generar más burocracia que desarrollo efectivo. |
-| **Aislamiento del Cliente** | Media | **Alto** | No hay registro de feedback o cambios de alcance, lo que sugiere falta de validación externa. |
-| **Ambigüedad de Roles Internos** | Media | Medio | No se define quién actúa como Product Owner o responsable de calidad (QA) dentro del equipo. |
+| Riesgo | Probabilidad | Impacto |
+|---|---|---|
+| Modelado incompleto de “Materias” (núcleo del dominio) | Alta | Alto |
+| Déficit de testing (calidad y regresiones) | Alta | Alto |
+| Problemas de consistencia/performance con ORM (ActiveJDBC) + SQLite | Media | Medio-Alto |
+| Seguridad y control de acceso insuficiente (auth, sesiones, permisos) | Media | Alto |
+| Dependencia obligatoria de Internet | Media | Medio |
+| Arquitectura cliente/servidor sin detalle de despliegue/operación || Media | Medio |
+| Compatibilidad multi-navegador subestimada | Media | Medio |
+| SparkJava (microframework) puede aumentar trabajo manual (validaciones, auth, manejo de errores) | Media | Medio |
 
-## 3. Riesgos de Planificación
-| Riesgo | Probabilidad | Impacto | Justificación |
-| :--- | :--- | :--- | :--- |
-| **Alcance No Acotado (Scope Creep)** | **Alta** | **Crítico** | Las "Consultas académicas" no tienen un límite definido, lo que puede expandir el trabajo indefinidamente. |
-| **Cronograma Optimista** | Media | **Alto** | 3 meses para un sistema de gestión completo con roles únicos es un plazo muy ajustado para solo 2 personas. |
-| **Dependencia de Integración** | Baja | Medio | La centralización de datos suele requerir procesos de limpieza y migración no contemplados inicialmente. |
+---
 
-## 4. Riesgos Humanos
-| Riesgo | Probabilidad | Impacto | Justificación |
-| :--- | :--- | :--- | :--- |
-| **Factor de Camión (Bus Factor)** | Media | **Crítico** | Con solo 2 integrantes, cualquier imprevisto personal de uno detiene el 50% de la capacidad de desarrollo. |
-| **Sesgo de Especialización** | Media | Medio | Si ambos se enfocan en la misma área (ej. Backend), la interfaz de usuario y la experiencia de uso sufrirán. |
-| **Fatiga por Carga de Trabajo** | Baja | Medio | El cumplimiento del plazo estricto podría exigir jornadas excesivas dada la magnitud del sistema. |
+### 2) Riesgos organizacionales
+
+| Riesgo | Probabilidad | Impacto |
+|---|---|---|
+| Equipo mínimo (bus factor = 1) | Alta | Alto |
+| Overhead o mala aplicación de Scrum en equipo muy pequeño (roles difusos, ceremonias) | Media | Medio |
+
+
+---
+
+### 3) Riesgos de planificación
+
+| Riesgo | Probabilidad | Impacto |
+|---|---|---|
+| Plazo fijo de 3 meses con poco margen ante imprevistos | Alta | Alto |
+| Scope creep o recorte de funcionalidades críticas | Alta | Alto |
+| Backlog/issues difíciles de controlar (planificación débil) | Alta | Medio-Alto |
+| Falta de criterios de aceptación y estrategia de QA | Alta | Alto |
+| Subestimación del esfuerzo de modelo de datos y reglas del dominio | Media | Alto |
+
+---
+
+### 4) Riesgos humanos
+
+| Riesgo | Probabilidad | Impacto |
+|---|---|---|
+| Sobrecarga y fatiga (2 personas cubren análisis, dev, QA, despliegue) | Alta | Alto |
+| Conocimiento desigual del stack o prácticas (testing, patrones, seguridad) | Media | Medio-Alto |
+| Bloqueos por dependencia mutua alta (si uno se atrasa, el otro también) | Media | Medio |
+| Disponibilidad variable por contexto académico (exámenes, horarios) | Media | Alto |
+
+---
+
+## Analisis de Riesgo hecho por el equipo de trabajo
+| Tipo de Riesgo | Descripcion                     | Probabilidad | Impacto |
+|----------------|---------------------------------| --- |---------|
+| Tecnico        | Falta de modelado de "Materias" | Alta | Alto |
+| Tecnico        | Falta de testing | Alta | Alto    |
+| Organizacional | tamaño del grupo | Alta | Alto |
+| Organizacional | inexperiencia al dividir roles y tareas | Media | Alto |
+| Planificacion  | Poco margen de tiempo | Alta | Alto |
+| Planificacion  | inexperiencia en estimacion de deadlines | Alta | Alto |
+| Riesgo Humano  | falta de compromiso | Media | Alto |
+| Riesgo Humano  | falta de comunicacion | Media | Alta |
+| Riesgo Humano  | sobrecarga | Media | Alta |
+
+## Comparacion de Resultados
+
+Los dos analisis de riesgos demostraron resultados similares.
+Esto permite al grupo evidenciar los puntos criticos en el desarrollo del proyecto como 
+tambien el enfoque que debemos tomar.
+
+El analisis tecnico revelo algunas problematicas importantes a las 
+que debemos tomar en consideracion.
+
+Y en terminos de organizacion, planificacion y humano, esta muy presente el hecho
+de que somos 2 integrantes y que la organizacion, comunicacion y planificacion
+seran puntos cruciales a la hora de realizar este proyecto.
