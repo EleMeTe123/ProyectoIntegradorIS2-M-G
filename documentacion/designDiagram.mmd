@@ -1,0 +1,35 @@
+classDiagram
+
+class App {
+  main(String[] args)
+  init()
+  login()
+  crearUsuario()
+  crearProfesor()
+}
+
+class DBConfigSingleton {
+  instance : DBConfigSingleton
+  getInstance() DBConfigSingleton
+  connect()
+  disconnect()
+}
+
+class Usuario {
+  id : Integer
+  nombre : String
+  email : String
+  contrasena : String
+}
+
+class Profesor {
+  id : Integer
+  nombre : String
+  email : String
+  dni : String
+}
+
+
+App --> DBConfigSingleton
+App --> Usuario
+App --> Profesor
