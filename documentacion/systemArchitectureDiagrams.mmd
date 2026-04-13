@@ -1,0 +1,41 @@
+flowchart TB
+    U[Usuario]
+
+    subgraph Inicio
+        Interfaz[Interfaz Web]
+    end
+
+   
+    RyC[Rutas y Controladores]
+    
+
+    subgraph Aplicacion
+        Autentificacion[Autentificacion]
+        GestionUs[Gestion de Usuarios]
+        GestionProf[Gestion de Profesores]
+    end
+
+    subgraph Abstraccion
+        ModeloUs[Modelo de Usuario]
+        ModeloProf[Professor Modelo de Profesor]
+
+        Singleton[DBConfigSingleton]
+    end
+
+    DB[(SQLite)]
+
+    U --> Inicio
+    Interfaz --> RyC
+    RyC --> Autentificacion
+    RyC --> GestionUs
+    RyC --> GestionProf
+
+    Autentificacion --> ModeloUs
+    GestionUs --> ModeloUs
+    GestionProf --> ModeloProf
+
+
+    ModeloUs --> Singleton
+    ModeloProf --> Singleton
+
+    Singleton --> DB
