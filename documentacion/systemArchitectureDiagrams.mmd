@@ -10,9 +10,9 @@ flowchart TB
     
 
     subgraph Aplicacion
-        Autentificacion[Autentificacion]
-        GestionUs[Gestion de Usuarios]
-        GestionProf[Gestion de Profesores]
+        Autenticacion[Autenticacion]
+        GestionUs[Manipulador Usuario]
+        GestionProf[Manipulador Profesor]
     end
 
     subgraph Abstraccion
@@ -26,11 +26,11 @@ flowchart TB
 
     U --> Inicio
     Interfaz --> RyC
-    RyC --> Autentificacion
+    RyC --> Autenticacion
     RyC --> GestionUs
     RyC --> GestionProf
 
-    Autentificacion --> ModeloUs
+    Autenticacion --> ModeloUs
     GestionUs --> ModeloUs
     GestionProf --> ModeloProf
 
