@@ -24,6 +24,10 @@ import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la con
 import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
 import com.is1.proyecto.models.Profesores; // modelo para la tabla 'professors'
 
+//import librerias fechas
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Clase principal de la aplicación Spark.
  * Configura las rutas, filtros y el inicio del servidor web.
@@ -242,6 +246,32 @@ public class App {
             }
 
             return new ModelAndView(model, "profile.mustache");
+        }, new MustacheTemplateEngine());
+
+        // GET: página de configuraciones
+        get("/settings", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // Verificación de login
+            if (req.session().attribute("loggedIn") == null) {
+            res.redirect("/");
+            return null;
+            }
+
+            // mando el nombre de usuario para la pagina
+            String name = req.session().attribute("currentUserUsername");
+            model.put("username", name);
+
+            //fecha y hora actual
+            LocalDateTime ahora = LocalDateTime.now();
+            DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter formatoHora = DateTimeFormatter.ofPattern("HH:mm");
+            
+            model.put("fechaActual", ahora.format(formatoFecha));
+            model.put("horaActual", ahora.format(formatoHora));
+
+            // creacion de plantilla mustache para settings
+            return new ModelAndView(model, "settings.mustache");
         }, new MustacheTemplateEngine());
 
         // --- Rutas POST para manejar envíos de formularios y APIs ---
