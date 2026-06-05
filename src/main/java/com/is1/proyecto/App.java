@@ -23,6 +23,8 @@ import java.util.Map; // Interfaz Map, utilizada para Map.of() o HashMap.
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
 import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
 import com.is1.proyecto.models.Profesores; // modelo para la tabla 'professors'
+import com.is1.proyecto.models.Clase; //modelo  para la tabla clase
+import com.is1.proyecto.models.Inscripcion; //modelo para los inscriptos por clase
 
 //import librerias fechas
 import java.time.LocalDateTime;
@@ -55,38 +57,31 @@ public class App {
         // Este filtro se ejecuta antes de cada solicitud HTTP.
         before((req, res) -> {
             try {
-                // Abre una conexión a la base de datos utilizando las credenciales del
-                // singleton.
-                Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+                // Le preguntamos a ActiveJDBC si YA hay una conexión abierta antes de intentar abrir otra
+                if (!Base.hasConnection()) {
+                    Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+                }
                 System.out.println(req.url());
 
             } catch (Exception e) {
-                // Si ocurre un error al abrir la conexión, se registra y se detiene la
-                // solicitud
-                // con un código de estado 500 (Internal Server Error) y un mensaje JSON.
                 System.err.println("Error al abrir conexión con ActiveJDBC: " + e.getMessage());
-                halt(500, "{\"error\": \"Error interno del servidor: Fallo al conectar a la base de datos.\"}"
-                        + e.getMessage());
+                halt(500, "{\"error\": \"Error interno del servidor: Fallo al conectar a la base de datos.\"}" + e.getMessage());
             }
         });
 
         // --- Filtro 'after' para cerrar la conexión a la base de datos ---
         // Este filtro se ejecuta después de que cada solicitud HTTP ha sido procesada.
-        after((req, res) -> {
+        afterAfter((req, res) -> {
             try {
-                // Cierra la conexión a la base de datos para liberar recursos.
-                Base.close();
+                // Solo cerramos si efectivamente hay una conexión que cerrar
+                if (Base.hasConnection()) {
+                    Base.close();
+                }
             } catch (Exception e) {
-                // Si ocurre un error al cerrar la conexión, se registra.
                 System.err.println("Error al cerrar conexión con ActiveJDBC: " + e.getMessage());
             }
         });
-
-        // --- Rutas GET para renderizar formularios y páginas HTML ---
-
-        // GET: Muestra el formulario de creación de cuenta.
-        // Soporta la visualización de mensajes de éxito o error pasados como query
-        // parameters.
+        
         get("/user/create", (req, res) -> {
             Map<String, Object> model = new HashMap<>(); // Crea un mapa para pasar datos a la plantilla.
 
@@ -153,6 +148,15 @@ public class App {
                 model.put("esAdministrador", true);
             }
 
+            // New, Verificar si el usuario es profesor
+            Integer userId = req.session().attribute("userId");
+            if (userId != null) {
+                Profesores profe = Profesores.findById(userId);
+                if (profe != null) {
+                    model.put("isProfessor", true);
+                }
+            }            
+            
             // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
             return new ModelAndView(model, "dashboard.mustache");
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
@@ -248,6 +252,30 @@ public class App {
             return new ModelAndView(model, "profile.mustache");
         }, new MustacheTemplateEngine());
 
+        // GET: Mostrar formulario para cambiar contraseña (Cualquier usuario logueado)
+        get("/profile/password", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Verificación de seguridad: ¿Está logueado?
+            if (req.session().attribute("loggedIn") == null) {
+                res.redirect("/login");
+                return null;
+            }
+
+            // 2. Manejar mensajes de éxito o error que le enviaremos desde el POST
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // 3. Renderizar la vista
+            return new ModelAndView(model, "cambiar_password.mustache");
+        }, new MustacheTemplateEngine());
+
         // GET: página de configuraciones
         get("/settings", (req, res) -> {
             Map<String, Object> model = new HashMap<>();
@@ -272,6 +300,39 @@ public class App {
 
             // creacion de plantilla mustache para settings
             return new ModelAndView(model, "settings.mustache");
+        }, new MustacheTemplateEngine());
+
+        // GET: Mostrar lista de profesores para borrar (Solo Admin)
+        get("/profesor/borrar", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Verificación de seguridad: ¿Está logueado y es administrador?
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            Boolean esAdministrador = req.session().attribute("esAdministrador");
+            
+            if (loggedIn == null || !loggedIn || esAdministrador == null || !esAdministrador) {
+                // Si no es admin, lo pateamos de vuelta al dashboard
+                res.redirect("/dashboard");
+                return null;
+            }
+
+            // 2. Buscar a todos los profesores en la base de datos
+            // Profesores.findAll() trae todos los registros de la tabla 'professors'
+            List<Profesores> listaProfesores = Profesores.findAll();
+            model.put("profesores", listaProfesores);
+
+            // 3. Manejar mensajes de éxito o error (por si venimos de borrar uno)
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // 4. Renderizar la vista (que crearemos en la Fase 2)
+            return new ModelAndView(model, "borrar_profesor.mustache");
         }, new MustacheTemplateEngine());
 
         // --- Rutas POST para manejar envíos de formularios y APIs ---
@@ -520,6 +581,558 @@ public class App {
             }
         });
 
+        // POST: Maneja la eliminación de un profesor (Solo Admin)
+        post("/profesor/borrar", (req, res) -> {
+            
+            // 1. Verificación de seguridad: ¿Es administrador?
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            Boolean esAdministrador = req.session().attribute("esAdministrador");
+            
+            if (loggedIn == null || !loggedIn || esAdministrador == null || !esAdministrador) {
+                res.redirect("/dashboard");
+                return "";
+            }
+
+            // 2. Obtener el ID del profesor que el usuario seleccionó en la lista desplegable
+            String profesorIdStr = req.queryParams("profesor_id");
+            
+            if (profesorIdStr != null && !profesorIdStr.isEmpty()) {
+                try {
+                    int profesorId = Integer.parseInt(profesorIdStr);
+                    
+                    // 3. Buscar al profesor en la base de datos
+                    Profesores profe = Profesores.findById(profesorId);
+                    
+                    if (profe != null) {
+                        // Guardamos el nombre para mostrarlo en el mensaje de éxito
+                        String nombreCompleto = profe.getString("nombre") + " " + profe.getString("apellido");
+                        
+                        // 4. Eliminar de la tabla 'professors'
+                        profe.delete(); 
+                        
+                        // 5. Eliminar de la tabla 'users' (Opcional, pero recomendado para mantener limpieza)
+                        User usuarioAsociado = User.findById(profesorId);
+                        if (usuarioAsociado != null) {
+                            usuarioAsociado.delete();
+                        }
+                        
+                        // 6. Redirigir de vuelta a la página de borrar con un mensaje verde de éxito
+                        String exitoMsg = "El profesor " + nombreCompleto + " fue eliminado correctamente.";
+                        res.redirect("/profesor/borrar?message=" + URLEncoder.encode(exitoMsg, StandardCharsets.UTF_8));
+                        return "";
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error al intentar borrar el profesor: " + e.getMessage());
+                    String errorMsg = "Error interno de la base de datos al intentar eliminar.";
+                    res.redirect("/profesor/borrar?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                    return "";
+                }
+            }
+            
+            // Si el ID llega nulo o vacío (el usuario no seleccionó nada)
+            String errorMsg = "Por favor, seleccione un profesor válido de la lista.";
+            res.redirect("/profesor/borrar?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+            return "";
+            
+        });
+
+        // GET: Mostrar Opciones Avanzadas (Lista de todos los usuarios)
+        get("/admin/usuarios", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Verificación de seguridad súper estricta: ¿Está logueado y es ADMIN?
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            Boolean esAdministrador = req.session().attribute("esAdministrador");
+            
+            if (loggedIn == null || !loggedIn || esAdministrador == null || !esAdministrador) {
+                res.redirect("/dashboard");
+                return null;
+            }
+
+            // 2. Buscar TODOS los usuarios en la base de datos
+            List<User> todosLosUsuarios = User.findAll();
+            
+            // Creamos una lista especial para mandarle a la vista (Mustache)
+            // Usamos java.util.ArrayList para no tener que agregar imports extras arriba
+            List<Map<String, Object>> listaParaVista = new java.util.ArrayList<>();
+
+            for (User u : todosLosUsuarios) {
+                Map<String, Object> datosUsuario = new HashMap<>();
+                
+                datosUsuario.put("id", u.getId());
+                datosUsuario.put("name", u.getString("name"));
+                
+                // 3. Verificamos si es Administrador (Manejando si es Integer o Boolean en BD)
+                Object adminValue = u.get("esAdministrador");
+                boolean isAdmin = false;
+                if (adminValue instanceof Number) {
+                    isAdmin = ((Number) adminValue).intValue() == 1;
+                } else if (adminValue instanceof Boolean) {
+                    isAdmin = (Boolean) adminValue;
+                }
+                datosUsuario.put("isAdmin", isAdmin);
+
+                // 4. Verificamos el Tipo de Cuenta (¿Existe en la tabla profesores?)
+                Profesores profe = Profesores.findById(u.getId());
+                if (profe != null) {
+                    datosUsuario.put("tipoCuenta", "Profesor");
+                } else {
+                    datosUsuario.put("tipoCuenta", "Usuario Común");
+                }
+
+                // Agregamos este usuario procesado a nuestra lista
+                listaParaVista.add(datosUsuario);
+            }
+
+            model.put("usuarios", listaParaVista);
+
+            // 5. Manejar mensajes de éxito o error (para cuando borremos después)
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // 6. Renderizar la vista (que crearemos en la Fase 2)
+            return new ModelAndView(model, "opciones_avanzadas.mustache");
+        }, new MustacheTemplateEngine());
+
+        // GET: Menú intermedio para Administrar Clases (Solo Profesores)
+        get("/profesor/clases", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Verificación de seguridad: ¿Está logueado?
+            if (req.session().attribute("loggedIn") == null) {
+                res.redirect("/login");
+                return null;
+            }
+
+            // 2. Verificación estricta: ¿Es realmente un profesor?
+            Integer userId = req.session().attribute("userId");
+            Profesores profe = Profesores.findById(userId);
+            
+            if (profe == null) {
+                // Si intenta entrar un alumno o un admin que no es profesor, lo devolvemos
+                res.redirect("/dashboard");
+                return null;
+            }
+
+            // 3. Renderizar el menú de clases
+            return new ModelAndView(model, "administrar_clases.mustache");
+        }, new MustacheTemplateEngine());
+
+        // GET: Mostrar formulario para crear una nueva clase
+        get("/profesor/clases/nueva", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+
+            // 1. Verificación de seguridad
+            if (req.session().attribute("loggedIn") == null) {
+                res.redirect("/login");
+                return null;
+            }
+            Integer userId = req.session().attribute("userId");
+            if (Profesores.findById(userId) == null) {
+                res.redirect("/dashboard");
+                return null;
+            }
+
+            // 2. Manejar mensajes
+            String successMessage = req.queryParams("message");
+            if (successMessage != null) model.put("successMessage", successMessage);
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null) model.put("errorMessage", errorMessage);
+
+            return new ModelAndView(model, "crear_clase.mustache");
+        }, new MustacheTemplateEngine());
+
+        // GET: Mostrar lista de clases del profesor (VERSIÓN DEBUG SOLUCIONADA)
+        get("/profesor/clases/lista", (req, res) -> {
+            try {
+                Map<String, Object> model = new HashMap<>();
+                
+                // 1. Verificación de sesión
+                if (req.session().attribute("loggedIn") == null) {
+                    res.redirect("/login"); 
+                    return null;
+                }
+                
+                // 2. Conversión segura del ID
+                Object userIdObj = req.session().attribute("userId");
+                Integer userId = Integer.valueOf(userIdObj.toString());
+                
+                if (Profesores.findById(userId) == null) {
+                    res.redirect("/dashboard"); 
+                    return null;
+                }
+
+                // 3. Buscar en la base de datos
+                List<Clase> misClases = Clase.where("profesor_id = ?", userId);
+                List<Map<String, Object>> clasesParaVista = new java.util.ArrayList<>();
+                
+                for (Clase c : misClases) {
+                    Map<String, Object> datosClase = new HashMap<>();
+                    datosClase.put("idClase", c.getIdClase());
+                    datosClase.put("nombre", c.getNombre());
+                    clasesParaVista.add(datosClase);
+                }
+                
+                model.put("clases", clasesParaVista);
+                
+                return new ModelAndView(model, "lista_clases.mustache");
+
+            } catch (Exception e) {
+                System.err.println("ERROR CRÍTICO EN LISTA DE CLASES:");
+                e.printStackTrace();
+                
+                // SOLUCIÓN AL ERROR DE COMPILACIÓN: Usamos halt() para imprimir el error HTML 
+                // y detener la ruta sin romper la regla del ModelAndView.
+                String errorHtml = "<div style='font-family: sans-serif; padding: 20px; color: red;'>" +
+                                   "<h2>¡Te atrapé, Error!</h2>" +
+                                   "<p><strong>Mensaje:</strong> " + e.toString() + "</p>" +
+                                   "<p><strong>Causa exacta:</strong> " + e.getCause() + "</p>" +
+                                   "</div>";
+                halt(500, errorHtml);
+                return null;
+            }
+        }, new MustacheTemplateEngine());
+
+        // GET: Ver detalles de una clase específica (Con gestión de alumnos)
+        get("/profesor/clases/detalle", (req, res) -> {
+         Map<String, Object> model = new HashMap<>();
+
+         // Verificación de seguridad
+         if (req.session().attribute("loggedIn") == null) {
+             res.redirect("/login"); return null;
+         }
+         Object userIdObj = req.session().attribute("userId");
+         Integer userId = Integer.valueOf(userIdObj.toString());
+
+         if (Profesores.findById(userId) == null) {
+             res.redirect("/dashboard"); return null;
+         }
+
+         String claseIdStr = req.queryParams("clase_id");
+
+         if (claseIdStr != null && !claseIdStr.isEmpty()) {
+             try {
+                 int idClase = Integer.parseInt(claseIdStr);
+                 Clase clase = Clase.findById(idClase);
+
+                 if (clase != null && clase.getProfesorId().equals(userId)) {
+                     model.put("claseId", clase.getIdClase());
+                     model.put("claseNombre", clase.getNombre());
+                     model.put("claseDescripcion", clase.getDescripcion());
+
+                     // --- MAGIA NUEVA: OBTENER ALUMNOS INSCRITOS ---
+                     List<Inscripcion> inscripciones = Inscripcion.where("clase_id = ?", idClase);
+                     List<Map<String, Object>> alumnosInscritos = new java.util.ArrayList<>();
+                     List<Integer> idsInscritos = new java.util.ArrayList<>();
+
+                     for (Inscripcion ins : inscripciones) {
+                         User u = User.findById(ins.getUserId());
+                         if (u != null) {
+                             Map<String, Object> map = new HashMap<>();
+                             map.put("inscripcionId", ins.getId());
+                             map.put("usuarioId", u.getId());
+                             map.put("nombre", u.getString("name"));
+                             alumnosInscritos.add(map);
+                             idsInscritos.add(Integer.valueOf(u.getId().toString()));
+                         }
+                     }
+                     model.put("alumnosInscritos", alumnosInscritos);
+
+                     // --- MAGIA NUEVA: OBTENER ALUMNOS DISPONIBLES ---
+                     // (Solo Usuarios Comunes que NO estén ya en la clase)
+                     List<User> todosUsuarios = User.findAll();
+                     List<Map<String, Object>> alumnosDisponibles = new java.util.ArrayList<>();
+
+                     for (User u : todosUsuarios) {
+                         Integer uid = Integer.valueOf(u.getId().toString());
+
+                         Object adminVal = u.get("esAdministrador");
+                         boolean isAdmin = false;
+                         if (adminVal instanceof Number) isAdmin = ((Number) adminVal).intValue() == 1;
+                         else if (adminVal instanceof Boolean) isAdmin = (Boolean) adminVal;
+
+                         boolean isProf = Profesores.findById(uid) != null;
+
+                         if (!isAdmin && !isProf && !idsInscritos.contains(uid)) {
+                             Map<String, Object> map = new HashMap<>();
+                             map.put("usuarioId", uid);
+                             map.put("nombre", u.getString("name"));
+                             alumnosDisponibles.add(map);
+                         }
+                     }
+                     model.put("alumnosDisponibles", alumnosDisponibles);
+
+                     // Mensajes de éxito y error
+                     String successMessage = req.queryParams("message");
+                     if (successMessage != null) model.put("successMessage", successMessage);
+                     String errorMessage = req.queryParams("error");
+                     if (errorMessage != null) model.put("errorMessage", errorMessage);
+
+                     return new ModelAndView(model, "detalle_clase.mustache");
+                 }
+             } catch (Exception e) {
+                 System.err.println("Error: " + e.getMessage());
+             }
+         }
+         res.redirect("/profesor/clases/lista?error=Clase no encontrada.");
+         return null;
+        }, new MustacheTemplateEngine());
+
+        // POST: Procesar el cambio de contraseña
+        post("/profile/password", (req, res) -> {
+            
+            // 1. Verificación de seguridad: ¿Está logueado?
+            if (req.session().attribute("loggedIn") == null) {
+                res.redirect("/login");
+                return "";
+            }
+
+            // Obtener el ID del usuario actual desde la sesión
+            Integer userId = req.session().attribute("userId");
+            if (userId == null) {
+                res.redirect("/login");
+                return "";
+            }
+
+            // 2. Obtener los datos que el usuario escribió en el formulario web
+            String currentPassword = req.queryParams("current_password");
+            String newPassword = req.queryParams("new_password");
+            String confirmPassword = req.queryParams("confirm_password");
+
+            // 3. Validaciones de campos vacíos
+            if (currentPassword == null || currentPassword.isEmpty() ||
+                newPassword == null || newPassword.isEmpty() ||
+                confirmPassword == null || confirmPassword.isEmpty()) {
+                String msg = "Todos los campos son obligatorios.";
+                res.redirect("/profile/password?error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                return "";
+            }
+
+            // 4. Validar que la nueva contraseña y la confirmación sean exactamente iguales
+            if (!newPassword.equals(confirmPassword)) {
+                String msg = "Las nuevas contraseñas no coinciden.";
+                res.redirect("/profile/password?error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                return "";
+            }
+            
+            // 5. Validar la longitud mínima de seguridad
+            if (newPassword.length() < 6) {
+                String msg = "La nueva contraseña debe tener al menos 6 caracteres.";
+                res.redirect("/profile/password?error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                return "";
+            }
+
+            try {
+                // 6. Buscar al usuario real en la base de datos
+                User usuario = User.findById(userId);
+                
+                if (usuario != null) {
+                    // 7. Obtener la contraseña encriptada vieja de la base de datos
+                    String storedHashedPassword = usuario.getString("password");
+                    
+                    // 8. BCrypt comprueba si la "Actual" que escribió coincide con la encriptada
+                    if (BCrypt.checkpw(currentPassword, storedHashedPassword)) {
+                        
+                        // Si es correcta, encriptamos la NUEVA contraseña y la guardamos
+                        String newHashedPassword = BCrypt.hashpw(newPassword, BCrypt.gensalt());
+                        usuario.set("password", newHashedPassword);
+                        usuario.saveIt();
+                        
+                        // Redirigir con mensaje de éxito (Cartel Verde)
+                        String msg = "Contraseña actualizada correctamente.";
+                        res.redirect("/profile/password?message=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                        return "";
+                        
+                    } else {
+                        // Si la contraseña actual que ingresó no es la correcta (Cartel Rojo)
+                        String msg = "La contraseña actual es incorrecta.";
+                        res.redirect("/profile/password?error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                        return "";
+                    }
+                } else {
+                    res.redirect("/login");
+                    return "";
+                }
+
+            } catch (Exception e) {
+                System.err.println("Error al cambiar la contraseña: " + e.getMessage());
+                String msg = "Error interno al intentar cambiar la contraseña.";
+                res.redirect("/profile/password?error=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+                return "";
+            }
+        });
+
+        // POST: Eliminar usuario desde Opciones Avanzadas
+        post("/admin/usuarios/borrar", (req, res) -> {
+            
+            // 1. Verificación de seguridad estricta
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            Boolean esAdministrador = req.session().attribute("esAdministrador");
+            
+            if (loggedIn == null || !loggedIn || esAdministrador == null || !esAdministrador) {
+                res.redirect("/dashboard");
+                return "";
+            }
+
+            // 2. Obtener el ID del usuario a eliminar y el ID del admin que está usando el sistema
+            String userIdStr = req.queryParams("user_id");
+            Integer currentAdminId = req.session().attribute("userId");
+
+            if (userIdStr != null && !userIdStr.isEmpty()) {
+                try {
+                    int userToDeleteId = Integer.parseInt(userIdStr);
+
+                    // 3. MEDIDA DE SEGURIDAD: Evitar que el administrador se borre a sí mismo
+                    if (currentAdminId != null && currentAdminId == userToDeleteId) {
+                        String errorMsg = "Medida de seguridad: No puedes eliminar tu propia cuenta de administrador.";
+                        res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                        return "";
+                    }
+
+                    // 4. Buscar el usuario en la base de datos
+                    User usuarioAEliminar = User.findById(userToDeleteId);
+
+                    if (usuarioAEliminar != null) {
+                        String nombreUsuario = usuarioAEliminar.getString("name");
+
+                        // 5. Verificar si es Profesor y borrar esos datos PRIMERO (para evitar conflictos de la base de datos)
+                        Profesores profeAsociado = Profesores.findById(userToDeleteId);
+                        if (profeAsociado != null) {
+                            profeAsociado.delete();
+                        }
+
+                        // 6. Eliminar finalmente el usuario
+                        usuarioAEliminar.delete();
+
+                        // 7. Redirigir con mensaje de éxito (Cartel verde)
+                        String exitoMsg = "El usuario '" + nombreUsuario + "' y todos sus datos fueron eliminados correctamente.";
+                        res.redirect("/admin/usuarios?message=" + URLEncoder.encode(exitoMsg, StandardCharsets.UTF_8));
+                        return "";
+                    } else {
+                        String errorMsg = "El usuario seleccionado no existe en la base de datos.";
+                        res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                        return "";
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("Error al intentar borrar usuario desde opciones avanzadas: " + e.getMessage());
+                    String errorMsg = "Error interno al intentar eliminar el usuario.";
+                    res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                    return "";
+                }
+            }
+
+            // Si el ID llega nulo (no seleccionó nada en la lista)
+            String errorMsg = "Por favor, seleccione un usuario válido de la lista desplegable.";
+            res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+            return "";
+        });
+
+        // POST: Hacer Administrador a un usuario
+        post("/admin/usuarios/hacer-admin", (req, res) -> {
+            
+            // 1. Verificación de seguridad estricta
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            Boolean esAdministrador = req.session().attribute("esAdministrador");
+            
+            if (loggedIn == null || !loggedIn || esAdministrador == null || !esAdministrador) {
+                res.redirect("/dashboard");
+                return "";
+            }
+
+            // 2. Obtener el ID del usuario seleccionado
+            String userIdStr = req.queryParams("admin_user_id");
+
+            if (userIdStr != null && !userIdStr.isEmpty()) {
+                try {
+                    int newAdminId = Integer.parseInt(userIdStr);
+
+                    // 3. Buscar el usuario en la base de datos
+                    User usuarioParaAdmin = User.findById(newAdminId);
+
+                    if (usuarioParaAdmin != null) {
+                        
+                        // 4. Cambiar su estado a Administrador (esAdministrador = 1)
+                        usuarioParaAdmin.set("esAdministrador", 1);
+                        usuarioParaAdmin.saveIt();
+                        
+                        String nombreUsuario = usuarioParaAdmin.getString("name");
+
+                        // 5. Redirigir con mensaje de éxito
+                        String exitoMsg = "El usuario '" + nombreUsuario + "' ahora es Administrador del sistema.";
+                        res.redirect("/admin/usuarios?message=" + URLEncoder.encode(exitoMsg, StandardCharsets.UTF_8));
+                        return "";
+                    } else {
+                        String errorMsg = "El usuario seleccionado no existe.";
+                        res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                        return "";
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("Error al hacer administrador a un usuario: " + e.getMessage());
+                    String errorMsg = "Error interno al intentar asignar permisos.";
+                    res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                    return "";
+                }
+            }
+
+            // Si el ID llega nulo
+            String errorMsg = "Por favor, seleccione un usuario válido.";
+            res.redirect("/admin/usuarios?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+            return "";
+        });
+
+        // POST: Guardar la nueva clase en la base de datos
+        post("/profesor/clases/nueva", (req, res) -> {
+            
+            // 1. Verificación de seguridad
+            if (req.session().attribute("loggedIn") == null) {
+                res.redirect("/login");
+                return "";
+            }
+            Integer userId = req.session().attribute("userId");
+            if (Profesores.findById(userId) == null) {
+                res.redirect("/dashboard");
+                return "";
+            }
+
+            // 2. Recibir datos del formulario
+            String nombre = req.queryParams("nombre");
+            String descripcion = req.queryParams("descripcion");
+
+            // 3. Validación básica
+            if (nombre == null || nombre.trim().isEmpty() || descripcion == null || descripcion.trim().isEmpty()) {
+                String errorMsg = "Todos los campos son obligatorios.";
+                res.redirect("/profesor/clases/nueva?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                return "";
+            }
+
+            try {
+                // 4. Crear la clase usando tu nuevo modelo
+                Clase nuevaClase = new Clase();
+                nuevaClase.setNombre(nombre.trim());
+                nuevaClase.setDescripcion(descripcion.trim());
+                nuevaClase.setProfesorId(userId); // Asignamos esta clase al profesor que está logueado
+                nuevaClase.saveIt();
+
+                String exitoMsg = "La clase '" + nombre + "' fue creada exitosamente.";
+                res.redirect("/profesor/clases/nueva?message=" + URLEncoder.encode(exitoMsg, StandardCharsets.UTF_8));
+                return "";
+
+            } catch (Exception e) {
+                System.err.println("Error al crear clase: " + e.getMessage());
+                String errorMsg = "Error interno al guardar la clase en la base de datos.";
+                res.redirect("/profesor/clases/nueva?error=" + URLEncoder.encode(errorMsg, StandardCharsets.UTF_8));
+                return "";
+            }
+        });
+
         // POST: Endpoint para añadir usuarios (API que devuelve JSON, no HTML).
         // Advertencia: Esta ruta tiene un propósito diferente a las de formulario HTML.
         post("/add_users", (req, res) -> {
@@ -556,6 +1169,56 @@ public class App {
                         .writeValueAsString(Map.of("error", "Error interno al registrar usuario: " + e.getMessage()));
             }
         });
+
+        // POST: Agregar alumno a una clase
+        post("/profesor/clases/alumnos/agregar", (req, res) -> {
+         if (req.session().attribute("loggedIn") == null) {
+             res.redirect("/login"); return "";
+         }
+         String claseIdStr = req.queryParams("clase_id");
+         String userIdStr = req.queryParams("user_id");
+
+         if (claseIdStr != null && userIdStr != null) {
+             try {
+                 Inscripcion ins = new Inscripcion();
+                 ins.setClaseId(Integer.parseInt(claseIdStr));
+                 ins.setUserId(Integer.parseInt(userIdStr));
+                 ins.saveIt();
+                 res.redirect("/profesor/clases/detalle?clase_id=" + claseIdStr + "&message=" + URLEncoder.encode("Alumno inscrito con éxito.", StandardCharsets.UTF_8));
+                 return "";
+             } catch (Exception e) {
+                 res.redirect("/profesor/clases/detalle?clase_id=" + claseIdStr + "&error=" + URLEncoder.encode("Error al agregar alumno.", StandardCharsets.UTF_8));
+                 return "";
+             }
+         }
+         res.redirect("/profesor/clases/lista");
+         return "";
+     });
+
+        // POST: Expulsar alumno de una clase
+        post("/profesor/clases/alumnos/remover", (req, res) -> {
+         if (req.session().attribute("loggedIn") == null) {
+             res.redirect("/login"); return "";
+         }
+         String claseIdStr = req.queryParams("clase_id");
+         String inscripcionIdStr = req.queryParams("inscripcion_id");
+
+         if (claseIdStr != null && inscripcionIdStr != null) {
+             try {
+                 Inscripcion ins = Inscripcion.findById(Integer.parseInt(inscripcionIdStr));
+                 if (ins != null) {
+                     ins.delete();
+                     res.redirect("/profesor/clases/detalle?clase_id=" + claseIdStr + "&message=" + URLEncoder.encode("Alumno retirado de la cursada.", StandardCharsets.UTF_8));
+                     return "";
+                 }
+             } catch (Exception e) {
+                 res.redirect("/profesor/clases/detalle?clase_id=" + claseIdStr + "&error=" + URLEncoder.encode("Error al remover alumno.", StandardCharsets.UTF_8));
+                 return "";
+             }
+         }
+         res.redirect("/profesor/clases/lista");
+         return "";
+     });
 
     } // Fin del método main
 } // Fin de la clase App
