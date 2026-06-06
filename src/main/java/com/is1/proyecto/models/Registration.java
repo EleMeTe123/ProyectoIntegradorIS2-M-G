@@ -3,6 +3,6 @@ package com.is1.proyecto.models;
 import org.javalite.activejdbc.Model;
 import org.javalite.activejdbc.annotations.Table;
 
-@Table("users")
-public class User extends Model {
+@Table("registrations")
+public class Registration extends Model {
 }

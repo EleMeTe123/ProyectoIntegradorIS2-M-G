@@ -22,14 +22,12 @@ CREATE TABLE IF NOT EXISTS subjects (
 );
 
 CREATE TABLE IF NOT EXISTS registrations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     studentId INTEGER NOT NULL,
     subjectId INTEGER NOT NULL,
 
-    PRIMARY KEY(studentId, subjectId),
+    UNIQUE(studentId, subjectId),
 
-    FOREIGN KEY (studentId)
-        REFERENCES users(id),
-
-    FOREIGN KEY (subjectId)
-        REFERENCES subjects(id)
+    FOREIGN KEY (studentId) REFERENCES users(id),
+    FOREIGN KEY (subjectId) REFERENCES subjects(id)
 );
