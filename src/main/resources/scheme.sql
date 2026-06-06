@@ -1,27 +1,35 @@
--- Elimina la tabla 'users' si ya existe para asegurar un inicio limpio
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS PROFESSORS;
 
--- Crea la tabla 'users' con los campos originales, adaptados para SQLite
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT, -- Clave primaria autoincremental para SQLite
-    name TEXT NOT NULL UNIQUE,          -- Nombre de usuario (TEXT es el tipo de cadena recomendado para SQLite), con restricción UNIQUE
-    password TEXT NOT NULL,           -- Contraseña hasheada (TEXT es el tipo de cadena recomendado para SQLite)
-    esAdministrador INTEGER NOT NULL CHECK (esAdministrador IN (0, 1)) DEFAULT 0 --Atributo ""booleano"" (Si es 0 es false, si es 1 es true)
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+
+    firstName TEXT NOT NULL,
+    lastName TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    rol TEXT NOT NULL CHECK (
+        rol IN ('ADMIN','PROFESSOR','STUDENT')
+        )
 );
 
---ALTER TABLE users ADD COLUMN esAdministrador INTEGER NOT NULL CHECK (esAdministrador IN (0, 1)) DEFAULT 0;
-    
+CREATE TABLE IF NOT EXISTS subjects (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    professorId INTEGER NOT NULL,
+    FOREIGN KEY (professorId)
+        REFERENCES users(id)
+);
 
-CREATE TABLE professors (
-    id_prof INTEGER PRIMARY KEY,
-    dni INTEGER NOT NULL UNIQUE,
-    legajo INTEGER NOT NULL UNIQUE,
-    nombre TEXT NOT NULL,
-    apellido TEXT NOT NULL,
-    direccion TEXT,
-    telefono INTEGER,
-    correo TEXT NOT NULL UNIQUE,
-    cargo TEXT,
-    FOREIGN KEY (id_prof) REFERENCES users(id)
+CREATE TABLE IF NOT EXISTS registrations (
+    studentId INTEGER NOT NULL,
+    subjectId INTEGER NOT NULL,
+
+    PRIMARY KEY(studentId, subjectId),
+
+    FOREIGN KEY (studentId)
+        REFERENCES users(id),
+
+    FOREIGN KEY (subjectId)
+        REFERENCES subjects(id)
 );
