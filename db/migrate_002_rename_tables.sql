@@ -1,15 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    userName TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
-    rol TEXT NOT NULL DEFAULT 'STUDENT' CHECK (rol IN ('ADMIN', 'PROFESSOR', 'STUDENT')),
-    firstName TEXT,
-    lastName TEXT,
-    email TEXT UNIQUE,
-    dni INTEGER UNIQUE,
-    address TEXT,
-    phoneNumber TEXT
-);
+BEGIN TRANSACTION;
 
 CREATE TABLE IF NOT EXISTS subjects (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,6 +8,10 @@ CREATE TABLE IF NOT EXISTS subjects (
     FOREIGN KEY (professorId) REFERENCES users(id)
 );
 
+INSERT INTO subjects (id, name, code, professorId)
+SELECT id, nombre, UPPER(REPLACE(nombre, ' ', '_')), profesor_id
+FROM clases;
+
 CREATE TABLE IF NOT EXISTS registrations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     studentId INTEGER NOT NULL,
@@ -27,3 +20,12 @@ CREATE TABLE IF NOT EXISTS registrations (
     FOREIGN KEY (studentId) REFERENCES users(id),
     FOREIGN KEY (subjectId) REFERENCES subjects(id)
 );
+
+INSERT INTO registrations (id, studentId, subjectId)
+SELECT id, user_id, clase_id
+FROM inscripciones;
+
+DROP TABLE inscripciones;
+DROP TABLE clases;
+
+COMMIT;
