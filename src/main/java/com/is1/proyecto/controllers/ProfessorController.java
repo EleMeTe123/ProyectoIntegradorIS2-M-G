@@ -94,14 +94,12 @@ public class ProfessorController {
             return null;
         }
 
-        String currentUserName = req.session().attribute("currentUserUsername");
         Integer userId = req.session().attribute("userId");
 
-        model.put("userName", currentUserName);
-
         User user = userService.findById(userId);
-        if (user != null && "PROFESSOR".equals(user.getString("rol"))) {
-            model.put("isProfessor", true);
+        if (user != null) {
+            model.put("userName", user.getString("userName"));
+            model.put("rol", user.getString("rol"));
             model.put("firstName", user.getString("firstName"));
             model.put("lastName", user.getString("lastName"));
             model.put("dni", user.get("dni"));
@@ -110,8 +108,6 @@ public class ProfessorController {
             if (phoneNumber != null) model.put("phoneNumber", phoneNumber);
             String address = user.getString("address");
             if (address != null && !address.isEmpty()) model.put("address", address);
-        } else {
-            model.put("isProfessor", false);
         }
 
         return new ModelAndView(model, "profile.mustache");
