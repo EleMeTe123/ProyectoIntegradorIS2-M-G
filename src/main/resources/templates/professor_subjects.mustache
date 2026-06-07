@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Profesor</title>
+    <title>Mis Materias</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-[url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-no-repeat flex items-center justify-center min-h-screen p-4">
@@ -24,28 +24,32 @@
     </script>
 
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Panel del Profesor</h1>
-
-
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Mis Materias</h1>
 
         {{#username}}
         <p class="text-xl text-center text-gray-700 mb-8">Bienvenido, <span class="font-semibold text-blue-600">{{username}}</span></p>
         {{/username}}
 
-        <div class="flex justify-center mb-8">
-            <div class="bg-blue-50 border border-blue-200 p-6 rounded-lg text-center shadow-sm w-full max-w-sm">
-                <h2 class="text-2xl font-bold text-blue-700 mb-3">Tu Perfil</h2>
-                <p class="text-gray-600 mb-4">Gestiona la información de tu cuenta.</p>
-                <a href="/profile" class="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-300">Ver Perfil</a>
+        {{#hasSubjects}}
+        <div class="space-y-3">
+            {{#subjects}}
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded border border-gray-200">
+                <div>
+                    <p class="font-semibold text-gray-800">{{name}}</p>
+                    <p class="text-sm text-gray-500">Código: {{code}}</p>
+                </div>
             </div>
+            {{/subjects}}
         </div>
-
-        <div class="flex justify-center mb-6">
-            <a href="/professor/subjects" class="bg-indigo-600 text-white py-3 px-8 rounded-md hover:bg-indigo-700 transition duration-300 text-lg text-center font-bold border border-indigo-800 shadow-md">Materias</a>
+        {{/hasSubjects}}
+        {{^hasSubjects}}
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <p class="text-sm text-yellow-700">No tienes materias asignadas.</p>
         </div>
+        {{/hasSubjects}}
 
         <div class="text-center mt-6">
-            <a href="/logout" class="inline-block bg-red-600 text-white py-2 px-6 rounded-md hover:bg-red-700 transition duration-300 text-lg">Cerrar Sesión</a>
+            <a href="/dashboard" class="inline-block bg-gray-600 text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-300">Volver al Panel</a>
         </div>
     </div>
 </body>

@@ -23,4 +23,8 @@ public class SubjectService {
     public List<User> findAllProfessors() {
         return User.where("rol = ?", "PROFESSOR");
     }
+
+    public List<Subject> findByProfessorId(int professorId) {
+        return Subject.where("professorId = ?", professorId);
+    }
 }

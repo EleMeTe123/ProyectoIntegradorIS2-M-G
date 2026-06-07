@@ -52,7 +52,7 @@ public class App {
 
         new AuthController(authService).registerRoutes();
         new UserController(userService, objectMapper).registerRoutes();
-        new ProfessorController(userService).registerRoutes();
+        new ProfessorController(userService, new SubjectService()).registerRoutes();
         new SubjectController(new SubjectService()).registerRoutes();
         new DashboardController().registerRoutes();
     }

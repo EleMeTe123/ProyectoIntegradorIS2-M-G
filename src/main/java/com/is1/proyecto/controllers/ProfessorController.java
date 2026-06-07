@@ -1,7 +1,9 @@
 package com.is1.proyecto.controllers;
 
 import com.is1.proyecto.dto.CreateUserRequest;
+import com.is1.proyecto.models.Subject;
 import com.is1.proyecto.models.User;
+import com.is1.proyecto.services.SubjectService;
 import com.is1.proyecto.services.UserService;
 import spark.ModelAndView;
 import spark.Request;
@@ -10,7 +12,9 @@ import spark.template.mustache.MustacheTemplateEngine;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static spark.Spark.get;
@@ -19,15 +23,18 @@ import static spark.Spark.post;
 public class ProfessorController {
 
     private final UserService userService;
+    private final SubjectService subjectService;
 
-    public ProfessorController(UserService userService) {
+    public ProfessorController(UserService userService, SubjectService subjectService) {
         this.userService = userService;
+        this.subjectService = subjectService;
     }
 
     public void registerRoutes() {
         get("/professor/create", this::showCreateForm, new MustacheTemplateEngine());
         post("/professor/create", this::handleCreateProfessor);
         get("/profile", this::showProfile, new MustacheTemplateEngine());
+        get("/professor/subjects", this::showSubjects, new MustacheTemplateEngine());
     }
 
     private ModelAndView showCreateForm(Request req, Response res) {
@@ -111,6 +118,38 @@ public class ProfessorController {
         }
 
         return new ModelAndView(model, "profile.mustache");
+    }
+
+    private ModelAndView showSubjects(Request req, Response res) {
+        if (req.session().attribute("loggedIn") == null) {
+            res.redirect("/login");
+            return null;
+        }
+
+        String rol = req.session().attribute("rol");
+        if (!"PROFESSOR".equals(rol)) {
+            res.redirect("/dashboard");
+            return null;
+        }
+
+        Integer userId = req.session().attribute("userId");
+        Map<String, Object> model = new HashMap<>();
+        model.put("username", req.session().attribute("currentUserUsername"));
+
+        if (userId != null) {
+            List<Subject> subjects = subjectService.findByProfessorId(userId);
+            List<Map<String, Object>> subjectList = new ArrayList<>();
+            for (Subject s : subjects) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("name", s.getString("name"));
+                item.put("code", s.getString("code"));
+                subjectList.add(item);
+            }
+            model.put("subjects", subjectList);
+            model.put("hasSubjects", !subjectList.isEmpty());
+        }
+
+        return new ModelAndView(model, "professor_subjects.mustache");
     }
 
     private String redirectError(Response res, String route, String message) {
