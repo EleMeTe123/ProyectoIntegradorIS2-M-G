@@ -43,8 +43,26 @@ public class UserController {
     private String handleCreateUser(Request req, Response res) {
         String userName = req.queryParams("userName");
         String password = req.queryParams("password");
+        String firstName = req.queryParams("firstName");
+        String lastName = req.queryParams("lastName");
+        String email = req.queryParams("email");
+        String dniStr = req.queryParams("dni");
+        String address = req.queryParams("address");
+        String phoneNumber = req.queryParams("phoneNumber");
 
-        CreateUserRequest request = new CreateUserRequest(userName, password);
+        Integer dni = null;
+        if (dniStr != null && !dniStr.trim().isEmpty()) {
+            try {
+                dni = Integer.parseInt(dniStr);
+            } catch (NumberFormatException e) {
+                res.status(400);
+                res.redirect("/user/create?error=DNI must be a valid number.");
+                return "";
+            }
+        }
+
+        CreateUserRequest request = new CreateUserRequest(userName, password, "STUDENT",
+                firstName, lastName, email, dni, address, phoneNumber);
 
         if (!request.isValid()) {
             res.status(400);

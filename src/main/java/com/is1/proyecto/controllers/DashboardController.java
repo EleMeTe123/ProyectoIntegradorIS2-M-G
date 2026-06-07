@@ -29,10 +29,20 @@ public class DashboardController {
         Map<String, Object> model = new HashMap<>();
         model.put("username", currentUsername);
 
-        if ("ADMIN".equals(rol)) {
-            model.put("isAdmin", true);
+        String template;
+        switch (rol) {
+            case "ADMIN":
+                template = "dashboard_admin.mustache";
+                break;
+            case "PROFESSOR":
+                template = "dashboard_professor.mustache";
+                break;
+            case "STUDENT":
+            default:
+                template = "dashboard_student.mustache";
+                break;
         }
 
-        return new ModelAndView(model, "dashboard.mustache");
+        return new ModelAndView(model, template);
     }
 }
