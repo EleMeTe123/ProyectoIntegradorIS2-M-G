@@ -31,4 +31,8 @@ public class SubjectService {
     public Subject findById(int id) {
         return Subject.findById(id);
     }
+
+    public List<Subject> findAllSubjects() {
+        return Subject.findAll();
+    }
 }

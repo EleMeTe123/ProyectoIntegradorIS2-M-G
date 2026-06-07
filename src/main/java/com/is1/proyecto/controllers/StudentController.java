@@ -2,6 +2,7 @@ package com.is1.proyecto.controllers;
 
 import com.is1.proyecto.models.Subject;
 import com.is1.proyecto.services.RegistrationService;
+import com.is1.proyecto.services.SubjectService;
 import spark.ModelAndView;
 import spark.Request;
 import spark.Response;
@@ -20,9 +21,11 @@ import static spark.Spark.post;
 public class StudentController {
 
     private final RegistrationService registrationService;
+    private final SubjectService subjectService;
 
-    public StudentController(RegistrationService registrationService) {
+    public StudentController(RegistrationService registrationService, SubjectService subjectService) {
         this.registrationService = registrationService;
+        this.subjectService = subjectService;
     }
 
     public void registerRoutes() {
@@ -40,7 +43,7 @@ public class StudentController {
         Map<String, Object> model = new HashMap<>();
         model.put("username", req.session().attribute("currentUserUsername"));
 
-        List<Subject> subjects = registrationService.findAllSubjects();
+        List<Subject> subjects = subjectService.findAllSubjects();
         Integer userId = req.session().attribute("userId");
         List<Map<String, Object>> subjectList = new ArrayList<>();
         for (Subject s : subjects) {
