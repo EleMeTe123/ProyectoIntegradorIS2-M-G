@@ -25,8 +25,8 @@ public class ProfessorController {
     }
 
     public void registerRoutes() {
-        get("/profesor/alta", this::showCreateForm, new MustacheTemplateEngine());
-        post("/profesor/alta", this::handleCreateProfessor);
+        get("/professor/create", this::showCreateForm, new MustacheTemplateEngine());
+        post("/professor/create", this::handleCreateProfessor);
         get("/profile", this::showProfile, new MustacheTemplateEngine());
     }
 
@@ -36,7 +36,7 @@ public class ProfessorController {
         String message = req.queryParams("message");
         if (error != null && !error.isEmpty()) model.put("errorMessage", error);
         if (message != null && !message.isEmpty()) model.put("successMessage", message);
-        return new ModelAndView(model, "profesor_form.mustache");
+        return new ModelAndView(model, "professor_form.mustache");
     }
 
     private String handleCreateProfessor(Request req, Response res) {
@@ -52,7 +52,7 @@ public class ProfessorController {
         if (username == null || username.isEmpty() || password == null || password.isEmpty() ||
             firstName == null || firstName.isEmpty() || lastName == null || lastName.isEmpty() ||
             email == null || email.isEmpty() || dniStr == null || dniStr.isEmpty() ) {
-            return redirectError(res, "/profesor/alta",
+            return redirectError(res, "/professor/create",
                     "Required fields are missing.");
         }
 
@@ -60,15 +60,15 @@ public class ProfessorController {
         try {
             dni = Integer.parseInt(dniStr.trim());
         } catch (NumberFormatException e) {
-            return redirectError(res, "/profesor/alta", "The DNI number must be valid.");
+            return redirectError(res, "/professor/create", "The DNI number must be valid.");
         }
 
         if (userService.emailExists(email))
-            return redirectError(res, "/profesor/alta", "Email already exists.");
+            return redirectError(res, "/professor/create", "Email already exists.");
         if (userService.dniExists(dni))
-            return redirectError(res, "/profesor/alta", "DNI already exists.");
+            return redirectError(res, "/professor/create", "DNI already exists.");
         if (userService.usernameExists(username))
-            return redirectError(res, "/profesor/alta", "The username is already in use.");
+            return redirectError(res, "/professor/create", "The username is already in use.");
 
         try {
             userService.createUser(new CreateUserRequest(
@@ -77,11 +77,11 @@ public class ProfessorController {
 
             String msg = "Professor " + firstName + " " + lastName + " successfully registered. User: " + username;
             res.status(201);
-            res.redirect("/profesor/alta?message=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
+            res.redirect("/professor/create?message=" + URLEncoder.encode(msg, StandardCharsets.UTF_8));
         } catch (Exception e) {
             System.err.println("Error registering the professor: " + e.getMessage());
             res.status(500);
-            return redirectError(res, "/profesor/alta", "Internal error. Please try again.");
+            return redirectError(res, "/professor/create", "Internal error. Please try again.");
         }
         return "";
     }

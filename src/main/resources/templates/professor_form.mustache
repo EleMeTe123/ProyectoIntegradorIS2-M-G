@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dar de alta a un profesor</title>
+    <title>Cargar nuevo profesor</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
@@ -22,16 +22,16 @@
         </div>
         {{/errorMessage}}
 
-        <form action="/profesor/alta" method="post" class="space-y-4">
+        <form action="/professor/create" method="post" class="space-y-4">
             <div>
-                <label for="nombre" class="block text-gray-700 text-sm font-medium mb-1">Nombre del nuevo profesor (*):</label>
-                <input type="text" id="nombre" name="nombre" required placeholder="Ej. Rafael"
+                <label for="firstName" class="block text-gray-700 text-sm font-medium mb-1">Nombre del nuevo profesor (*):</label>
+                <input type="text" id="firstName" name="firstName" required placeholder="Ej. Rafael"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
              <div>
-                <label for="apellido" class="block text-gray-700 text-sm font-medium mb-1">Apellido del nuevo profesor (*):</label>
-                <input type="text" id="apellido" name="apellido" required placeholder="Ej. Gonzales"
+                <label for="lastName" class="block text-gray-700 text-sm font-medium mb-1">Apellido del nuevo profesor (*):</label>
+                <input type="text" id="lastName" name="lastName" required placeholder="Ej. Gonzales"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
@@ -42,38 +42,26 @@
             </div>
 
             <div>
-                <label for="legajo" class="block text-gray-700 text-sm font-medium mb-1">Numero de legajo (*):</label>
-                <input type="text" id="legajo" name="legajo" required pattern="\d*" title="Solo números." placeholder="Ej. 1234"
+                <label for="email" class="block text-gray-700 text-sm font-medium mb-1">Correo electronico (*):</label>
+                <input type="email" id="email" name="email" required placeholder="hola@gmail.com"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <div>
-                <label for="correo" class="block text-gray-700 text-sm font-medium mb-1">Correo electronico (*):</label>
-                <input type="email" id="correo" name="correo" required placeholder="hola@gmail.com"
+                <label for="phoneNumber" class="block text-gray-700 text-sm font-medium mb-1">Numero de telefono:</label>
+                <input type="text" id="phoneNumber" name="phoneNumber" pattern="\d*" title="Solo números." placeholder="Ej. 3582222888"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <div>
-                <label for="telefono" class="block text-gray-700 text-sm font-medium mb-1">Numero de telefono:</label>
-                <input type="text" id="telefono" name="telefono" pattern="\d*" title="Solo números." placeholder="Ej. 358-2222888"
+                <label for="address" class="block text-gray-700 text-sm font-medium mb-1">Dirección:</label>
+                <input type="text" id="address" name="address" placeholder="Ej: Calle paloma 2000"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
             <div>
-                <label for="dirección" class="block text-gray-700 text-sm font-medium mb-1">Dirección:</label>
-                <input type="text" id="direccion" name="direccion" placeholder="Ej: Calle paloma 2000"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <div>
-                <label for="cargo" class="block text-gray-700 text-sm font-medium mb-1">Cargo:</label>
-                <input type="text" id="cargo" name="cargo" placeholder="Ej: Titular, Adjunto"
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <div>
-                <label for="name" class="block text-gray-700 text-sm font-medium mb-1">Nombre de usuario (*):</label>
-                <input type="text" id="name" name="name" required placeholder="Ej: rgonzales"
+                <label for="userName" class="block text-gray-700 text-sm font-medium mb-1">Nombre de usuario (*):</label>
+                <input type="text" id="userName" name="userName" required placeholder="Ej: rgonzales"
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
