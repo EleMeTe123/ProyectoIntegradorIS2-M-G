@@ -5,9 +5,11 @@ import com.is1.proyecto.config.DBConfigSingleton;
 import com.is1.proyecto.controllers.AuthController;
 import com.is1.proyecto.controllers.DashboardController;
 import com.is1.proyecto.controllers.ProfessorController;
+import com.is1.proyecto.controllers.StudentController;
 import com.is1.proyecto.controllers.SubjectController;
 import com.is1.proyecto.controllers.UserController;
 import com.is1.proyecto.services.AuthService;
+import com.is1.proyecto.services.RegistrationService;
 import com.is1.proyecto.services.SubjectService;
 import com.is1.proyecto.services.UserService;
 import org.javalite.activejdbc.Base;
@@ -54,6 +56,7 @@ public class App {
         new UserController(userService, objectMapper).registerRoutes();
         new ProfessorController(userService, new SubjectService()).registerRoutes();
         new SubjectController(new SubjectService()).registerRoutes();
+        new StudentController(new RegistrationService()).registerRoutes();
         new DashboardController().registerRoutes();
     }
 }
