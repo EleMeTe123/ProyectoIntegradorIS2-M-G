@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumnos - {{subjectName}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[url('https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center bg-no-repeat flex items-center justify-center min-h-screen p-4">
+    <div id="reloj-vivo" class="fixed top-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-md shadow-lg font-mono text-xl font-bold z-50 border border-gray-700">
+        00:00:00
+    </div>
+
+    <script>
+        function actualizarReloj() {
+            const ahora = new Date();
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            document.getElementById('reloj-vivo').textContent = `${horas}:${minutos}:${segundos}`;
+        }
+        actualizarReloj();
+        setInterval(actualizarReloj, 1000);
+    </script>
+
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">{{subjectName}}</h1>
+        <p class="text-center text-gray-500 mb-6">Código: {{subjectCode}}</p>
+
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Alumnos Inscriptos</h2>
+
+        {{#hasStudents}}
+        <div class="space-y-3">
+            {{#students}}
+            <div class="p-4 bg-gray-50 rounded border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div>
+                        <p class="text-sm text-gray-500">Nombre</p>
+                        <p class="font-medium text-gray-800">{{firstName}} {{lastName}}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Usuario</p>
+                        <p class="font-medium text-gray-800">{{userName}}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Email</p>
+                        <p class="font-medium text-gray-800">{{email}}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">DNI</p>
+                        <p class="font-medium text-gray-800">{{dni}}</p>
+                    </div>
+                </div>
+            </div>
+            {{/students}}
+        </div>
+        {{/hasStudents}}
+        {{^hasStudents}}
+        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+            <p class="text-sm text-yellow-700">No hay alumnos inscriptos en esta materia.</p>
+        </div>
+        {{/hasStudents}}
+
+        <div class="text-center mt-6">
+            <a href="/professor/subjects" class="inline-block bg-gray-600 text-white py-2 px-6 rounded-md hover:bg-gray-700 transition duration-300">Volver a Materias</a>
+        </div>
+    </div>
+</body>
+</html>

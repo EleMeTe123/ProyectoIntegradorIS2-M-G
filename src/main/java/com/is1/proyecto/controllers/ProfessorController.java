@@ -3,6 +3,7 @@ package com.is1.proyecto.controllers;
 import com.is1.proyecto.dto.CreateUserRequest;
 import com.is1.proyecto.models.Subject;
 import com.is1.proyecto.models.User;
+import com.is1.proyecto.services.RegistrationService;
 import com.is1.proyecto.services.SubjectService;
 import com.is1.proyecto.services.UserService;
 import spark.ModelAndView;
@@ -24,10 +25,12 @@ public class ProfessorController {
 
     private final UserService userService;
     private final SubjectService subjectService;
+    private final RegistrationService registrationService;
 
-    public ProfessorController(UserService userService, SubjectService subjectService) {
+    public ProfessorController(UserService userService, SubjectService subjectService, RegistrationService registrationService) {
         this.userService = userService;
         this.subjectService = subjectService;
+        this.registrationService = registrationService;
     }
 
     public void registerRoutes() {
@@ -35,6 +38,7 @@ public class ProfessorController {
         post("/professor/create", this::handleCreateProfessor);
         get("/profile", this::showProfile, new MustacheTemplateEngine());
         get("/professor/subjects", this::showSubjects, new MustacheTemplateEngine());
+        get("/professor/subject/:id/students", this::showSubjectStudents, new MustacheTemplateEngine());
     }
 
     private ModelAndView showCreateForm(Request req, Response res) {
@@ -141,6 +145,7 @@ public class ProfessorController {
             List<Map<String, Object>> subjectList = new ArrayList<>();
             for (Subject s : subjects) {
                 Map<String, Object> item = new HashMap<>();
+                item.put("id", s.getId());
                 item.put("name", s.getString("name"));
                 item.put("code", s.getString("code"));
                 subjectList.add(item);
@@ -150,6 +155,50 @@ public class ProfessorController {
         }
 
         return new ModelAndView(model, "professor_subjects.mustache");
+    }
+
+    private ModelAndView showSubjectStudents(Request req, Response res) {
+        if (req.session().attribute("loggedIn") == null) {
+            res.redirect("/login");
+            return null;
+        }
+
+        String rol = req.session().attribute("rol");
+        if (!"PROFESSOR".equals(rol)) {
+            res.redirect("/dashboard");
+            return null;
+        }
+
+        String subjectIdStr = req.params(":id");
+        int subjectId;
+        try {
+            subjectId = Integer.parseInt(subjectIdStr);
+        } catch (NumberFormatException e) {
+            res.redirect("/professor/subjects");
+            return null;
+        }
+
+        Subject subject = subjectService.findById(subjectId);
+        if (subject == null) {
+            res.redirect("/professor/subjects");
+            return null;
+        }
+
+        Integer professorId = req.session().attribute("userId");
+        if (!subject.getInteger("professorId").equals(professorId)) {
+            res.redirect("/professor/subjects");
+            return null;
+        }
+
+        Map<String, Object> model = new HashMap<>();
+        model.put("subjectName", subject.getString("name"));
+        model.put("subjectCode", subject.getString("code"));
+
+        List<Map<String, Object>> students = registrationService.findStudentsBySubjectId(subjectId);
+        model.put("students", students);
+        model.put("hasStudents", !students.isEmpty());
+
+        return new ModelAndView(model, "subject_students.mustache");
     }
 
     private String redirectError(Response res, String route, String message) {

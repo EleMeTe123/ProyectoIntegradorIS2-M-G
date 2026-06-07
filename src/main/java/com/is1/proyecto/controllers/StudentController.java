@@ -28,6 +28,7 @@ public class StudentController {
     public void registerRoutes() {
         get("/student/enroll", this::showEnrollForm, new MustacheTemplateEngine());
         post("/student/enroll", this::handleEnroll);
+        get("/student/subjects", this::showMySubjects, new MustacheTemplateEngine());
     }
 
     private ModelAndView showEnrollForm(Request req, Response res) {
@@ -98,5 +99,24 @@ public class StudentController {
             res.redirect("/student/enroll?error=Internal error. Please try again.");
         }
         return "";
+    }
+
+    private ModelAndView showMySubjects(Request req, Response res) {
+        if (req.session().attribute("loggedIn") == null) {
+            res.redirect("/login");
+            return null;
+        }
+
+        Integer userId = req.session().attribute("userId");
+        Map<String, Object> model = new HashMap<>();
+        model.put("username", req.session().attribute("currentUserUsername"));
+
+        if (userId != null) {
+            List<Map<String, Object>> subjects = registrationService.findEnrolledSubjectsByStudentId(userId);
+            model.put("subjects", subjects);
+            model.put("hasSubjects", !subjects.isEmpty());
+        }
+
+        return new ModelAndView(model, "student_subjects.mustache");
     }
 }

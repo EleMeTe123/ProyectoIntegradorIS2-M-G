@@ -2,8 +2,10 @@ package com.is1.proyecto.services;
 
 import com.is1.proyecto.models.Registration;
 import com.is1.proyecto.models.Subject;
+import org.javalite.activejdbc.Base;
 
 import java.util.List;
+import java.util.Map;
 
 public class RegistrationService {
 
@@ -21,5 +23,23 @@ public class RegistrationService {
 
     public List<Subject> findAllSubjects() {
         return Subject.findAll();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> findEnrolledSubjectsByStudentId(int studentId) {
+        String sql = "SELECT s.id, s.name, s.code FROM subjects s " +
+                     "INNER JOIN registrations r ON r.subjectId = s.id " +
+                     "WHERE r.studentId = ?";
+        List<?> result = Base.findAll(sql, studentId);
+        return (List<Map<String, Object>>) result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> findStudentsBySubjectId(int subjectId) {
+        String sql = "SELECT u.id, u.userName, u.firstName, u.lastName, u.email, u.dni " +
+                     "FROM users u INNER JOIN registrations r ON r.studentId = u.id " +
+                     "WHERE r.subjectId = ?";
+        List<?> result = Base.findAll(sql, subjectId);
+        return (List<Map<String, Object>>) result;
     }
 }

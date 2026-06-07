@@ -27,4 +27,8 @@ public class SubjectService {
     public List<Subject> findByProfessorId(int professorId) {
         return Subject.where("professorId = ?", professorId);
     }
+
+    public Subject findById(int id) {
+        return Subject.findById(id);
+    }
 }
