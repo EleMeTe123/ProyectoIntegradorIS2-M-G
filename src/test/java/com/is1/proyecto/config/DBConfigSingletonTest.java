@@ -19,6 +19,7 @@ class DBConfigSingletonTest {
 
     @Test
     void dbUrlUsesSystemPropertyWhenAvailable() {
+        DBConfigSingleton.reset();
         String customUrl = "jdbc:sqlite:./target/test.db";
         System.setProperty("db.url", customUrl);
         try {

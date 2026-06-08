@@ -30,6 +30,10 @@ public final class DBConfigSingleton {
         return instance;
     }
 
+    public static synchronized void reset() {
+        instance = null;
+    }
+
     // Métodos para abrir y cerrar la conexión
     public void openConnection() {
         // Utiliza los valores de las propiedades de la clase para abrir la conexión
