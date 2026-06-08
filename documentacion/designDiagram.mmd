@@ -1,35 +1,56 @@
 classDiagram
 
-class App {
-  main(String[] args)
-  init()
-  login()
-  crearUsuario()
-  crearProfesor()
-}
 
-class DBConfigSingleton {
-  instance : DBConfigSingleton
-  getInstance() DBConfigSingleton
-  connect()
-  disconnect()
-}
+class User {
 
-class Usuario {
-  id : Integer
-  nombre : String
-  email : String
-  contrasena : String
-}
+-Dni
 
-class Profesor {
-  id : Integer
-  nombre : String
-  email : String
-  dni : String
+-Nombre
+
+-Apellido
+
+-Telefono
+
+-Email
+
 }
 
 
-App --> DBConfigSingleton
-App --> Usuario
-App --> Profesor
+class Student {
+
+}
+
+
+
+class Professor {
+
+}
+
+
+class Subject {
+
+-Codigo
+
+-Nombre
+
+}
+
+  
+
+%% Herencia
+
+User <|-- Student
+
+User <|-- Professor
+
+User <|-- Admin
+
+  
+
+%% Relaciones
+
+  
+
+Professor "1" -- "1..*" Subject : Responsable
+
+Student "*" -- "*" Subject : Inscripcion
